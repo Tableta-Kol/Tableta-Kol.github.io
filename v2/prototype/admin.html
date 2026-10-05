@@ -31,6 +31,19 @@
     </section>
 
     <section class="card">
+      <h2>Aktualizacje</h2>
+      <div class="meta">
+        <span>Wersja lokalna: <strong id="currentVersion">2.0.0-preview</strong></span>
+        <span id="updateState">Nie sprawdzano</span>
+      </div>
+      <div class="actions">
+        <button class="secondary" id="checkUpdate">Sprawdź aktualizację</button>
+        <button id="installUpdate" style="display:none">Aktualizuj</button>
+      </div>
+      <div class="small" id="updateInfo">W prototypie przycisk sprawdza manifest wersji. Instalacja APK zostanie włączona dopiero dla podpisanego release'u v2.</div>
+    </section>
+
+    <section class="card">
       <div class="toolbar">
         <input id="search" placeholder="Szukaj po ID, kliencie, firmie...">
         <select id="statusFilter">
@@ -118,6 +131,32 @@ function render(){
 }
 el("search").addEventListener("input", render);
 el("statusFilter").addEventListener("change", render);
+el("currentVersion").textContent = LK.CURRENT_VERSION.name;
+el("checkUpdate").addEventListener("click", async () => {
+  const state = el("updateState");
+  const install = el("installUpdate");
+  const info = el("updateInfo");
+  state.textContent = "Sprawdzanie...";
+  install.style.display = "none";
+  try {
+    const r = await LK.checkForUpdate();
+    if(r.available){
+      state.textContent = "Dostępna wersja " + r.remote.versionName;
+      info.textContent = (r.remote.releaseNotes || []).join(" • ") || "Dostępna jest nowsza wersja.";
+      if(r.installable){
+        install.style.display = "inline-flex";
+        install.onclick = () => location.href = r.remote.apkUrl;
+      }
+    } else {
+      state.textContent = "Masz najnowszą wersję";
+      info.textContent = "Kanał: " + (r.remote.channel || "stable") + ". Brak nowszego podpisanego release'u.";
+    }
+  } catch(err) {
+    state.textContent = "Błąd sprawdzania";
+    info.textContent = err.message;
+  }
+});
+
 el("seed").addEventListener("click", () => {
   const orders = LK.loadOrders();
   orders.unshift({
