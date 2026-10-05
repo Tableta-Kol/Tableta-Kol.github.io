@@ -1,0 +1,18 @@
+
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LK Stickwerk | Anfrage</title><link rel="stylesheet" href="styles.css"></head><body>
+<div class="wrap"><header class="top"><div class="brand"><div class="logo">LK</div><div><h1>LK Stickwerk</h1><div class="sub">Stickerei-Anfrage einfach online senden</div></div></div><a class="btn secondary" href="admin.html">Interner Testbereich</a></header>
+<div class="grid"><section class="card"><h2>Ihre Anfrage</h2><div class="form-grid">
+<div class="field"><label>Firma</label><input id="company" placeholder="Muster GmbH"></div><div class="field"><label>Ansprechpartner</label><input id="name" placeholder="Max Mustermann"></div>
+<div class="field"><label>E-Mail</label><input id="email" type="email" placeholder="mail@firma.de"></div><div class="field"><label>Telefon</label><input id="phone" placeholder="+49 ..."></div>
+<div class="field"><label>Textilie</label><select id="textile"><option>Polo</option><option>T-Shirt</option><option>Hoodie</option><option>Cap</option><option>Arbeitskleidung</option><option>Andere</option></select></div>
+<div class="field"><label>Menge</label><input id="quantity" type="number" min="1" value="1"></div><div class="field"><label>Farbe</label><input id="color" placeholder="Schwarz"></div><div class="field"><label>Größen</label><input id="sizes" placeholder="z.B. S:2, M:5, L:3"></div>
+<div class="field"><label>Stickposition</label><select id="placement"><option>Brust links</option><option>Brust rechts</option><option>Rücken</option><option>Ärmel</option><option>Cap vorne</option><option>Andere</option></select></div>
+<div class="field"><label>Stickgröße</label><input id="dimensions" placeholder="z.B. 90 x 45 mm"></div>
+<div class="field full"><label>Logo / Datei</label><input id="logo" type="file" accept=".png,.jpg,.jpeg,.pdf,.svg"><div class="small">W preview zapisujemy tylko nazwę pliku. Sam plik nie jest wysyłany.</div></div>
+<div class="field full"><label>Nachricht / Wünsche</label><textarea id="notes" placeholder="Weitere Angaben zur Stickerei..."></textarea></div></div>
+<div class="actions"><button id="send">Anfrage speichern</button><button class="secondary" type="button" id="clear">Formular leeren</button></div><div class="notice" id="notice"></div></section></div></div>
+<script src="app.js"></script><script>
+const $=id=>document.getElementById(id);
+$("send").onclick=()=>{const name=$("name").value.trim();if(!name){alert("Bitte Ansprechpartner eingeben.");return}const orders=LK.loadOrders();const f=$("logo").files[0];const o={id:LK.makeId(),status:"NEW",customer:{displayName:name,company:$("company").value.trim(),email:$("email").value.trim(),phone:$("phone").value.trim()},items:[{textileType:$("textile").value,quantity:Math.max(1,Number($("quantity").value||1)),color:$("color").value.trim(),sizesText:$("sizes").value.trim()}],embroidery:{placement:$("placement").value,dimensionsText:$("dimensions").value.trim(),notes:$("notes").value.trim()},attachments:f?[{name:f.name,storageId:"preview-only"}]:[],createdAt:LK.nowIso(),updatedAt:LK.nowIso(),schemaVersion:1};orders.unshift(o);LK.saveOrders(orders);const n=$("notice");n.style.display="block";n.textContent="Anfrage "+o.id+" wurde im lokalen Preview gespeichert."};
+$("clear").onclick=()=>location.reload();
+</script></body></html>
