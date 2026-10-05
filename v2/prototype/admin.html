@@ -1,0 +1,138 @@
+
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LK Stickwerk Control v2 | Panel</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">LK</div>
+      <div>
+        <h1>LK Stickwerk Control v2</h1>
+        <div class="sub">Panel zamówień, prototyp lokalny</div>
+      </div>
+    </div>
+    <a class="btn secondary" href="customer.html">Otwórz formularz klienta</a>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <div class="kpis">
+        <div class="kpi"><b id="kNew">0</b><span>NOWE</span></div>
+        <div class="kpi"><b id="kQuote">0</b><span>WYCENA</span></div>
+        <div class="kpi"><b id="kApproved">0</b><span>ZATWIERDZONE</span></div>
+        <div class="kpi"><b id="kReady">0</b><span>GOTOWE</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="toolbar">
+        <input id="search" placeholder="Szukaj po ID, kliencie, firmie...">
+        <select id="statusFilter">
+          <option value="">Wszystkie statusy</option>
+          <option>NEW</option><option>QUOTE</option><option>APPROVED</option>
+          <option>EMBROIDERY</option><option>READY</option><option>SHIPPED</option><option>CANCELLED</option>
+        </select>
+        <button class="secondary" id="seed">Dodaj zamówienie testowe</button>
+      </div>
+      <div id="orders" class="orders"></div>
+    </section>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+const el = id => document.getElementById(id);
+const statusLabels = {
+  NEW:"NOWE", QUOTE:"WYCENA", APPROVED:"ZATWIERDZONE",
+  EMBROIDERY:"HAFTOWANIE", READY:"GOTOWE", SHIPPED:"WYSŁANE", CANCELLED:"ANULOWANE"
+};
+
+function setStatus(id, status){
+  const orders = LK.loadOrders();
+  const item = orders.find(o => o.id === id);
+  if(!item) return;
+  item.status = status;
+  item.updatedAt = LK.nowIso();
+  LK.saveOrders(orders);
+  render();
+}
+function removeOrder(id){
+  if(!confirm("Usunąć zamówienie " + id + "?")) return;
+  LK.saveOrders(LK.loadOrders().filter(o => o.id !== id));
+  render();
+}
+function render(){
+  let orders = LK.loadOrders();
+  const q = el("search").value.trim().toLowerCase();
+  const sf = el("statusFilter").value;
+
+  el("kNew").textContent = orders.filter(o => o.status==="NEW").length;
+  el("kQuote").textContent = orders.filter(o => o.status==="QUOTE").length;
+  el("kApproved").textContent = orders.filter(o => o.status==="APPROVED").length;
+  el("kReady").textContent = orders.filter(o => o.status==="READY").length;
+
+  orders = orders.filter(o => {
+    const hay = [o.id,o.customer?.displayName,o.customer?.company,o.items?.[0]?.textileType].join(" ").toLowerCase();
+    return (!q || hay.includes(q)) && (!sf || o.status===sf);
+  });
+
+  if(!orders.length){
+    el("orders").innerHTML = '<div class="empty">Brak zamówień do wyświetlenia.</div>';
+    return;
+  }
+
+  el("orders").innerHTML = orders.map(o => {
+    const item = o.items?.[0] || {};
+    return `
+      <article class="order">
+        <div class="order-head">
+          <div>
+            <strong>${o.id}</strong>
+            <div>${o.customer?.company || o.customer?.displayName || "Klient"}</div>
+          </div>
+          <span class="badge">${statusLabels[o.status] || o.status}</span>
+        </div>
+        <div class="meta">
+          <span>${item.textileType || ""}</span>
+          <span>${item.quantity || 0} szt.</span>
+          <span>${item.color || ""}</span>
+          <span>${o.embroidery?.placement || ""}</span>
+        </div>
+        <div class="actions">
+          <button class="secondary" onclick="setStatus('${o.id}','QUOTE')">Wycena</button>
+          <button class="secondary" onclick="setStatus('${o.id}','APPROVED')">Zatwierdzone</button>
+          <button class="secondary" onclick="setStatus('${o.id}','EMBROIDERY')">Haftowanie</button>
+          <button class="secondary" onclick="setStatus('${o.id}','READY')">Gotowe</button>
+          <button class="secondary" onclick="setStatus('${o.id}','SHIPPED')">Wysłane</button>
+          <button class="danger" onclick="removeOrder('${o.id}')">Usuń</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+el("search").addEventListener("input", render);
+el("statusFilter").addEventListener("change", render);
+el("seed").addEventListener("click", () => {
+  const orders = LK.loadOrders();
+  orders.unshift({
+    id: LK.makeId(),
+    status: "NEW",
+    customer: { displayName:"Test Kunde", company:"Muster GmbH", email:"", phone:"" },
+    items:[{ textileType:"Polo", quantity:5, color:"Schwarz", sizesText:"M:2, L:3" }],
+    embroidery:{ placement:"Brust links", dimensionsText:"90 x 45 mm", notes:"" },
+    attachments:[],
+    createdAt:LK.nowIso(), updatedAt:LK.nowIso(), schemaVersion:1
+  });
+  LK.saveOrders(orders);
+  render();
+});
+render();
+</script>
+</body>
+</html>
